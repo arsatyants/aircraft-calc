@@ -1,16 +1,30 @@
 (function () {
   const A = window.AircraftCalc, d = A.defaults;
   const groups = [
-    ['Общее', [['mass', 'Взлётный вес, кг', d.mass, ''], ['altitude', 'Высота над ур. моря, м', d.altitude, ''], ['mu', 'Трение колёс/травы μ', d.mu, '']]],
+    ['Общее', [['mass', 'Взлётный вес, кг', d.mass, ''], ['altitude', 'Высота над ур. моря, м', d.altitude, ''], ['catapultLen', 'Длина разгона катапульты, м', d.catapultLen]]],
     ['Мотор', [['motor.kv', 'Kv, об/мин/В', d.motor.kv], ['motor.rm', 'Сопротивление, Ом', d.motor.rm], ['motor.i0', 'Ток х.х., А', d.motor.i0], ['motor.iMax', 'Макс. ток, А', d.motor.iMax], ['motor.count', 'Кол-во моторов', d.motor.count]]],
-    ['Винт', [['prop.diam', 'Диаметр, дюйм', d.prop.diam], ['prop.pitch', 'Шаг, дюйм', d.prop.pitch], ['prop.Ct0', 'Ct0 (статич.)', d.prop.Ct0], ['prop.Cp0', 'Cp0 (статич.)', d.prop.Cp0]]],
+    ['Винт', [['__apc', 'Винт APC (модель)', ''], ['prop.diam', 'Диаметр, дюйм', d.prop.diam], ['prop.pitch', 'Шаг, дюйм', d.prop.pitch], ['prop.Ct0', 'Ct0 (статич.)', d.prop.Ct0], ['prop.Cp0', 'Cp0 (статич.)', d.prop.Cp0]]],
     ['Батарея', [['batt.cells', 'Число банок S', d.batt.cells], ['batt.capMah', 'Ёмкость, мА·ч', d.batt.capMah], ['batt.vCell', 'Напр. банки, В', d.batt.vCell], ['batt.rCell', 'Внутр. R банки, мОм', d.batt.rCell], ['batt.usable', 'Доступная доля', d.batt.usable]]],
     ['Аэродинамика / крыло', [['vStall', 'Скорость сваливания, м/с', d.vStall], ['CLmax', 'CLmax', d.CLmax], ['AR', 'Удлинение', d.AR], ['taper', 'Сужение (tip/root)', d.taper], ['sweepLE', 'Стреловидность по передней кромке, °', d.sweepLE], ['Cd0', 'Cd0 (весь самолёт)', d.Cd0], ['e', 'Коэфф. Освальда', d.e]]],
     ['Прочее', [['esc', 'КПД регулятора', d.esc], ['avionicsW', 'Бортовая нагрузка, Вт', d.avionicsW]]],
   ];
   const form = document.getElementById('form');
   form.innerHTML = groups.map(([t, fs]) => `<fieldset><legend>${t}</legend>` +
-    fs.map(([k, l, v]) => `<label>${l}<input type="number" step="any" name="${k}" value="${v}"></label>`).join('') + '</fieldset>').join('');
+    fs.map(([k, l, v]) => k === '__apc' ? `<label>${l}<input id="apc" list="apclist" placeholder="напр. 10x7E" autocomplete="off"></label><datalist id="apclist"></datalist><div id="apcnote" class="note">Таблицы APC загружаются…</div>` : `<label>${l}<input type="number" step="any" name="${k}" value="${v}"></label>`).join('') + '</fieldset>').join('');
+
+  let apcDB = null;
+  const apcIn = document.getElementById('apc'), note = document.getElementById('apcnote');
+  fetch('apc.json').then(r => r.json()).then(db => {
+    apcDB = db;
+    document.getElementById('apclist').innerHTML = Object.keys(db).map(n => `<option value="${n}">`).join('');
+    note.textContent = `Доступно ${Object.keys(db).length} винтов APC. Не выбран — используется упрощённая модель по Ct0/Cp0.`;
+  }).catch(() => { note.textContent = 'Таблицы APC недоступны (откройте через http/Pages) — упрощённая модель Ct0/Cp0.'; });
+  function applyApc() {
+    const e = apcDB && apcDB[apcIn.value.trim()];
+    form.elements['prop.Ct0'].disabled = form.elements['prop.Cp0'].disabled = !!e;
+    if (e) { form.elements['prop.diam'].value = e[0]; form.elements['prop.pitch'].value = e[1]; }
+    return e;
+  }
 
   function read() {
     const c = JSON.parse(JSON.stringify(d));
@@ -18,6 +32,8 @@
       const v = parseFloat(el.value); if (!isFinite(v)) continue;
       const p = el.name.split('.'); if (p.length === 2) c[p[0]][p[1]] = v; else c[p[0]] = v;
     }
+    const e = applyApc();
+    if (e) { c.prop.table = { rpm: e[2], tabs: e[3] }; c.prop.apc = apcIn.value.trim(); }
     return c;
   }
   const f = (x, n = 1) => isFinite(x) ? x.toFixed(n) : '—';
@@ -38,12 +54,12 @@
       card(f(w.yMac * 100, 1) + ' см', 'Положение САХ от оси'),
       card(f(w.wingLoading * 10, 1) + ' г/дм²', 'Нагрузка на крыло'),
       card(cr ? `${f(cr.V, 1)} м/с (${f(kmh(cr.V), 0)} км/ч)` : '—', 'Крейсерская скорость'),
-      card(`${f(r.Vlof, 1)} м/с (${f(kmh(r.Vlof), 0)} км/ч)`, 'Скорость отрыва'),
+      card(`${f(r.Vlof, 1)} м/с (${f(kmh(r.Vlof), 0)} км/ч)`, 'Скорость отрыва = схода с катапульты'),
       card(`${f(r.Vs, 1)} м/с`, 'Скорость сваливания'),
       card(`${f(r.Vmax, 1)} м/с (${f(kmh(r.Vmax), 0)} км/ч)`, 'Макс. горизонтальная'),
       card(cr ? f(cr.range / 1000, 1) + ' км' : '—', 'Дальность'),
       card(cr ? f(cr.endurance / 60, 0) + ' мин' : '—', 'Продолжительность'),
-      card(f(r.takeoff.roll, 1) + ' м', 'Разбег'),
+      card(f(r.launch.accelG, 1) + ' g', `Перегрузка на катапульте (${f(r.launch.energy, 0)} Дж, ~${f(r.launch.force, 0)} Н)`),
       card(f(r.bestClimb, 1) + ' м/с', 'Макс. скороподъёмность'),
       card(f(r.stat.T / 9.80665 * 1000, 0) + ' г', 'Статическая тяга'),
       card(f(r.tw, 2), 'Тяговооружённость'),

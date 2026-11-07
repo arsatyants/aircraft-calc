@@ -15,3 +15,4 @@ input{width:90px;padding:4px 6px;border:1px solid var(--bd);border-radius:6px;ba
 #warn div{background:var(--card);border:1px solid var(--warn);color:var(--warn);border-radius:8px;padding:6px 10px;margin-bottom:8px}
 h2{font-size:16px;margin:18px 0 6px}svg{width:100%;background:var(--card);border:1px solid var(--bd);border-radius:10px}
 svg text{fill:var(--mut);font-size:11px}details{margin-top:16px;color:var(--mut)}
+.note{color:var(--mut);font-size:12px;margin:2px 0 6px}
