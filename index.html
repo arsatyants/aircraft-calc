@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Калькулятор самолёта</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header><h1>Калькулятор самолёта</h1>
+<p>Мотор + винт + батарея + взлётный вес → крыло, скорости, дальность. Расчёт полностью в браузере.</p></header>
+<main>
+<form id="form"></form>
+<section id="out">
+  <div id="warn"></div>
+  <div class="cards" id="cards"></div>
+  <h2>Форма крыла (вид сверху)</h2>
+  <svg id="planform" viewBox="0 0 600 260"></svg>
+  <h2>Тяга и сопротивление</h2>
+  <svg id="plot1" viewBox="0 0 600 260"></svg>
+  <h2>Мощность от батареи</h2>
+  <svg id="plot2" viewBox="0 0 600 260"></svg>
+  <details><summary>Допущения модели</summary><ul>
+  <li>Винт: Ct(J)=Ct0·(1−(J/J0)²), Cp(J)=Cp0·(1−0.5·J/J0), J0≈0.85·шаг/диаметр.</li>
+  <li>Мотор: Kv, сопротивление обмотки, ток холостого хода; ESC КПД учтён; просадка батареи по внутреннему сопротивлению.</li>
+  <li>Крыло: площадь из заданной скорости сваливания; поляра CD=Cd0+CL²/(π·e·AR).</li>
+  <li>Крейсерская скорость — скорость максимальной дальности (макс. V/P) не ниже 1.3·Vсваливания.</li>
+  <li>Скорость отрыва = 1.2·Vсваливания; разбег — численное интегрирование при полном газе.</li>
+  <li>Это инженерная оценка (±15–25%); для точности подставляйте Ct/Cp своего винта из таблиц производителя.</li></ul></details>
+</section>
+</main>
+<script src="calc.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
